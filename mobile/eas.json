@@ -11,11 +11,19 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://slate-backend-8c9l.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "991610011878-iuupkbjigp34q0g8sv3hh9oaibqhap0f.apps.googleusercontent.com"
       }
     },
     "production": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://slate-backend-8c9l.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "991610011878-iuupkbjigp34q0g8sv3hh9oaibqhap0f.apps.googleusercontent.com"
       }
     }
   },
