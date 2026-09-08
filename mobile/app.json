@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Slate",
+    "slug": "granola",
+    "owner": "aryan2vb",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "granola",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#FBFBF9"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.granola.copilot"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FBFBF9"
+      },
+      "package": "com.granola.copilot",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "granola"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-secure-store"
+    ],
+    "backgroundColor": "#FBFBF9",
+    "extra": {
+      "eas": {
+        "projectId": "7231908d-6d19-4b94-9e9d-b53767f73c26"
+      }
+    }
+  }
+}
