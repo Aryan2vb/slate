@@ -15,6 +15,7 @@ import GlassSheet from '../components/GlassSheet';
 import Icon from '../components/Icon';
 import PressableScale from '../components/PressableScale';
 import { colors, fontFamilies, radius, space } from '../theme/tokens';
+import { GoogleLogo, SlateLogo } from '../components/BrandLogos';
 
 // Completes the auth session when control returns from the browser.
 WebBrowser.maybeCompleteAuthSession();
@@ -267,14 +268,33 @@ export default function LoginScreen() {
       <View style={[styles.content, { paddingTop: insets.top + space.xxl, paddingBottom: insets.bottom + space.xxl }]}>
         {/* Brand Block */}
         <Animated.View entering={FadeInDown.duration(450)} style={styles.brandBlock}>
-          <View style={styles.markBadge}>
-            <Text style={styles.markGlyph}>S</Text>
+          <View style={styles.logoContainer}>
+            <SlateLogo size={70} />
           </View>
 
           <Text style={styles.wordmark}>Slate</Text>
           <Text style={styles.tagline}>
             Clean, blank, and ready for thoughts.
           </Text>
+          <Text style={styles.description}>
+            Your ambient AI executive copilot — turning real-time conversations into structured intelligence, notes, and action items effortlessly.
+          </Text>
+
+          {/* Value Pillars */}
+          <View style={styles.pillRow}>
+            <View style={styles.featurePill}>
+              <Icon name="mic" size={12} color="#10B981" />
+              <Text style={styles.featurePillText}>Live Copilot</Text>
+            </View>
+            <View style={styles.featurePill}>
+              <Icon name="calendar" size={12} color="#38BDF8" />
+              <Text style={styles.featurePillText}>Calendar Sync</Text>
+            </View>
+            <View style={styles.featurePill}>
+              <Icon name="zap" size={12} color="#F59E0B" />
+              <Text style={styles.featurePillText}>Smart Dossiers</Text>
+            </View>
+          </View>
         </Animated.View>
 
         {/* Actions Block */}
@@ -293,7 +313,7 @@ export default function LoginScreen() {
                 disabled={isSigningIn}
                 style={styles.cta}
               >
-                <Icon name="google" size={17} color="#000000" />
+                <GoogleLogo size={20} />
                 <Text style={styles.ctaText}>Continue with Google</Text>
               </PressableScale>
             </>
@@ -330,6 +350,7 @@ export default function LoginScreen() {
           }}
           style={styles.cta}
         >
+          <GoogleLogo size={20} />
           <Text style={styles.ctaText}>Continue with Google</Text>
         </PressableScale>
       </GlassSheet>
@@ -363,37 +384,51 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  markBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.md,
-    backgroundColor: '#202125',
-    borderWidth: 1,
-    borderColor: '#2D2E34',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: space.xl,
-  },
-  markGlyph: {
-    fontFamily: fontFamilies.serif,
-    color: '#FFFFFF',
-    fontSize: 26,
-    fontWeight: '700',
+  logoContainer: {
+    marginBottom: space.lg,
   },
   wordmark: {
     fontFamily: fontFamilies.serif,
-    fontSize: 40,
+    fontSize: 42,
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: -0.5,
-    marginBottom: space.sm,
+    marginBottom: 4,
   },
   tagline: {
-    fontSize: 15,
-    color: '#8E929B',
-    lineHeight: 23,
-    maxWidth: 320,
+    fontSize: 16,
+    color: '#E4E4E7',
+    fontWeight: '500',
+    marginBottom: space.sm,
+  },
+  description: {
+    fontSize: 14,
+    color: '#A1A1AA',
+    lineHeight: 21,
+    maxWidth: 340,
     marginBottom: space.xl,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: space.lg,
+  },
+  featurePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#202125',
+    borderWidth: 1,
+    borderColor: '#2E3038',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+  },
+  featurePillText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#D4D4D8',
   },
 
   actions: {

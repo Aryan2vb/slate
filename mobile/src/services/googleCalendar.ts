@@ -172,6 +172,8 @@ export async function fetchGoogleCalendarEvents(
     timeMin: timeMin.toISOString(),
     timeMax: timeMax.toISOString(),
     maxResults: (options.maxResults || 25).toString(),
+    // Cache buster to prevent HTTP client / OkHttp from serving stale disk cache
+    _t: Date.now().toString(),
   });
 
   const url = `${GOOGLE_CALENDAR_BASE}/calendars/primary/events?${params.toString()}`;
@@ -181,6 +183,9 @@ export async function fetchGoogleCalendarEvents(
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0',
     },
   });
 
