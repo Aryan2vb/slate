@@ -31,6 +31,12 @@ app.get('/terms', (req, res) => {
   res.send(renderTermsPage());
 });
 
+// Google Search Console Site Verification File
+app.get('/googlee4aff92fee7c2f61.html', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send('google-site-verification: googlee4aff92fee7c2f61.html');
+});
+
 app.use(routes);
 
 app.get('/api/health', (req, res) => {

@@ -114,6 +114,7 @@ export const renderHomePage = (): string => `
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google-site-verification" content="googlee4aff92fee7c2f61.html" />
   <title>Slate - Ambient AI Meeting Copilot</title>
   <style>${baseStyles}</style>
 </head>
