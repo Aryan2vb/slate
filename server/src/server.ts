@@ -5,6 +5,8 @@ import express from 'express';
 import cors from 'cors';
 import routes from './routes';
 
+import { renderHomePage, renderPrivacyPage, renderTermsPage } from './pages';
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -12,6 +14,22 @@ const PORT = process.env.PORT || 3001;
 // NOTE: Restrict this in production to your frontend domains.
 app.use(cors());
 app.use(express.json());
+
+// Public branding & legal pages (required for Google OAuth Verification)
+app.get('/', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(renderHomePage());
+});
+
+app.get('/privacy', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(renderPrivacyPage());
+});
+
+app.get('/terms', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(renderTermsPage());
+});
 
 app.use(routes);
 
