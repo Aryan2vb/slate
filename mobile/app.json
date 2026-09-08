@@ -7,9 +7,6 @@
     "orientation": "portrait",
     "scheme": "granola",
     "userInterfaceStyle": "light",
-    "splash": {
-      "backgroundColor": "#FBFBF9"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.granola.copilot"
@@ -36,7 +33,8 @@
       ]
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "backgroundColor": "#FBFBF9",
     "extra": {
