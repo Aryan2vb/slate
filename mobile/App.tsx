@@ -129,8 +129,15 @@ function Flow() {
 }
 
 function AppContent() {
-  const { user, googleAccessToken, googleRefreshToken, isLoading } = useAuth();
+  const { user, googleAccessToken, googleRefreshToken, refreshAccessToken, isLoading } = useAuth();
   const setSession = useMeetingStore((s) => s.setSession);
+  const setTokenRefreshHandler = useMeetingStore((s) => s.setTokenRefreshHandler);
+
+  useEffect(() => {
+    if (refreshAccessToken) {
+      setTokenRefreshHandler(refreshAccessToken);
+    }
+  }, [refreshAccessToken, setTokenRefreshHandler]);
 
   useEffect(() => {
     if (user && googleAccessToken) {

@@ -184,36 +184,6 @@ export default function AgendaScreen({
         {/* Screen Title: "My notes" (Screenshot 1) */}
         <Text style={[styles.screenTitle, { color: themeColors.text }]}>My notes</Text>
 
-        {/* Expired Token Notice Banner */}
-        {isTokenExpired && (
-          <View style={[styles.expiredCard, { backgroundColor: themeColors.card, borderColor: '#F59E0B55' }]}>
-            <View style={styles.expiredCardContent}>
-              <View style={styles.expiredIconBox}>
-                <Icon name="alert-circle" size={18} color="#F59E0B" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.expiredTitle, { color: themeColors.text }]}>
-                  Calendar session expired
-                </Text>
-                <Text style={[styles.expiredSubtitle, { color: themeColors.textMuted }]}>
-                  Your Google authorization has timed out (1 hr limit). Tap below to reconnect and sync your upcoming meetings.
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={async () => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                await meetingSignOut();
-                await authSignOut();
-              }}
-              style={styles.reconnectBtn}
-            >
-              <Text style={styles.reconnectBtnText}>Reconnect Google Account</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* "Coming up" Section (Screenshot 1) */}
         {events.length > 0 && (
           <View style={styles.comingUpSection}>

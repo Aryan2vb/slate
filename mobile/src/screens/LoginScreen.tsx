@@ -11,7 +11,6 @@ import Constants from 'expo-constants';
 
 import { useAuth } from '../context/AuthContext';
 import { exchangeGoogleAuthCode, getApiUrl } from '../services/api';
-import GlassSheet from '../components/GlassSheet';
 import Icon from '../components/Icon';
 import PressableScale from '../components/PressableScale';
 import { colors, fontFamilies, radius, space } from '../theme/tokens';
@@ -32,7 +31,6 @@ export default function LoginScreen() {
 
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [explainerOpen, setExplainerOpen] = useState(false);
 
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
@@ -302,14 +300,14 @@ export default function LoginScreen() {
           {isSigningIn ? (
             <View style={styles.signingIn}>
               <ActivityIndicator color="#FFFFFF" />
-              <Text style={styles.signingInText}>Opening your desk…</Text>
+              <Text style={styles.signingInText}>Connecting with Google…</Text>
             </View>
           ) : (
             <>
-              {/* Primary Google Login */}
+              {/* Direct 1-Tap Google Login */}
               <PressableScale
                 haptic="primary"
-                onPress={() => setExplainerOpen(true)}
+                onPress={() => void startGoogleAuth()}
                 disabled={isSigningIn}
                 style={styles.cta}
               >
@@ -325,46 +323,6 @@ export default function LoginScreen() {
             Sign in with your Google account to sync your calendar.
           </Text>
         </Animated.View>
-      </View>
-
-      {/* Permission Explainer Sheet */}
-      <GlassSheet
-        visible={explainerOpen}
-        onClose={() => setExplainerOpen(false)}
-        title="Connect Google Calendar"
-        subtitle="Slate reads your upcoming agenda to prepare your desk before meetings start."
-      >
-        <View style={styles.scopeList}>
-          <ScopeRow label="Read your calendar events" detail="calendar.events.readonly" />
-          <ScopeRow label="Create & update events" detail="calendar.events" />
-          <ScopeRow label="Your name and email address" detail="profile · email" />
-        </View>
-
-        <PressableScale
-          haptic="primary"
-          onPress={() => {
-            setExplainerOpen(false);
-            setTimeout(() => {
-              void startGoogleAuth();
-            }, 260);
-          }}
-          style={styles.cta}
-        >
-          <GoogleLogo size={20} />
-          <Text style={styles.ctaText}>Continue with Google</Text>
-        </PressableScale>
-      </GlassSheet>
-    </View>
-  );
-}
-
-function ScopeRow({ label, detail }: { label: string; detail: string }) {
-  return (
-    <View style={styles.scopeRow}>
-      <View style={styles.scopeDot} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.scopeLabel}>{label}</Text>
-        <Text style={styles.scopeDetail}>{detail}</Text>
       </View>
     </View>
   );

@@ -31,6 +31,8 @@ interface MeetingState {
   isTokenExpired: boolean;
 
   // Actions
+  tokenRefreshHandler: (() => Promise<string | null>) | null;
+  setTokenRefreshHandler: (handler: () => Promise<string | null>) => void;
   initializeSession: () => Promise<void>;
   setSession: (tokens: AuthTokens, user?: UserProfile) => Promise<void>;
   signOut: () => Promise<void>;
@@ -50,6 +52,9 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
   isRefreshing: false,
   error: null,
   isTokenExpired: false,
+  tokenRefreshHandler: null,
+
+  setTokenRefreshHandler: (handler) => set({ tokenRefreshHandler: handler }),
 
   initializeSession: async () => {
     try {
@@ -107,14 +112,14 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
 
     if (!tokens?.accessToken) {
       set({
-        events: [],
-        selectedMeeting: null,
         isLoading: false,
         isRefreshing: false,
         isTokenExpired: false,
       });
       return;
     }
+
+    const refreshFn = onTokenExpired || get().tokenRefreshHandler;
 
     try {
       const events = await fetchGoogleCalendarEvents(tokens.accessToken);
@@ -129,15 +134,12 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to sync Google Calendar';
       const is401 = errorMessage.includes('401') || errorMessage.includes('expired');
-      console.warn('[MeetingStore] Calendar fetch failed:', errorMessage);
 
-      // Silent automatic retry if token refresh handler is provided
-      if (is401 && onTokenExpired) {
+      // Silent automatic background renewal
+      if (is401 && refreshFn) {
         try {
-          console.log('[MeetingStore] Attempting automatic silent token refresh...');
-          const freshAccessToken = await onTokenExpired();
+          const freshAccessToken = await refreshFn();
           if (freshAccessToken) {
-            console.log('[MeetingStore] Token refreshed, retrying Google Calendar fetch...');
             set({ tokens: { ...tokens, accessToken: freshAccessToken } });
             const retryEvents = await fetchGoogleCalendarEvents(freshAccessToken);
             set({
@@ -151,15 +153,15 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
             return;
           }
         } catch (refreshErr) {
-          console.error('[MeetingStore] Silent refresh failed:', refreshErr);
+          console.warn('[MeetingStore] Silent token renewal failed:', refreshErr);
         }
       }
 
+      // Preserve existing events on any network or transient error; never wipe user's desk!
       set({
-        events: [],
-        selectedMeeting: null,
-        error: errorMessage,
-        isTokenExpired: is401,
+        events: get().events,
+        error: is401 ? null : errorMessage,
+        isTokenExpired: false,
         isLoading: false,
         isRefreshing: false,
       });
