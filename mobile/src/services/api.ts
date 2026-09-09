@@ -2,26 +2,28 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 export const getApiUrl = (): string => {
+  // In development, strictly use the local laptop IP and never Render
+  if (__DEV__) {
+    if (Platform.OS === 'web') {
+      return 'http://localhost:3001';
+    }
+
+    // Expo Go dynamically provides the host machine's LAN IP
+    const hostUri = Constants.expoConfig?.hostUri;
+    if (hostUri) {
+      const ip = hostUri.split(':')[0];
+      if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+        return `http://${ip}:3001`;
+      }
+    }
+
+    // Direct laptop Wi-Fi IP fallback
+    return 'http://10.7.26.227:3001';
+  }
+
+  // In production / preview APK builds
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
-
-  // If a production or remote API URL is specified (e.g. railway, render, ngrok)
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1') && !envUrl.includes('10.7.26.227')) {
-    return envUrl;
-  }
-
-  // On Web, localhost or env works
-  if (Platform.OS === 'web') {
-    return envUrl || 'http://localhost:3001';
-  }
-
-  // On Native Mobile in local Expo Go development
-  const hostUri = Constants.expoConfig?.hostUri;
-  if (hostUri) {
-    const ip = hostUri.split(':')[0];
-    return `http://${ip}:3001`;
-  }
-
-  return envUrl || 'http://10.7.26.227:3001';
+  return envUrl || 'https://slate-backend-8c9l.onrender.com';
 };
 
 export interface User {
