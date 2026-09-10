@@ -15,7 +15,9 @@ export type IconName =
   /** Ionicons has a proper sparkle; Feather does not. */
   | 'sparkles'
   /** Brand mark for the Google sign-in button. */
-  | 'google';
+  | 'google'
+  /** Up-down expand indicator matching native design */
+  | 'chevron-expand';
 
 interface IconProps {
   name: IconName;
@@ -30,6 +32,9 @@ export default function Icon({ name, size = 16, color = colors.textSecondary, st
   }
   if (name === 'google') {
     return <AntDesign name="google" size={size} color={color} style={style} />;
+  }
+  if (name === 'chevron-expand') {
+    return <Ionicons name="chevron-expand" size={size} color={color} style={style} />;
   }
   return <Feather name={name} size={size} color={color} style={style} />;
 }

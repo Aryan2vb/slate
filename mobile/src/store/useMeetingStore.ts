@@ -122,7 +122,9 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
     const refreshFn = onTokenExpired || get().tokenRefreshHandler;
 
     try {
-      const events = await fetchGoogleCalendarEvents(tokens.accessToken);
+      console.log('[MeetingStore] Fetching Google Calendar events (refresh:', isPullRefresh, ')...');
+      const events = await fetchGoogleCalendarEvents(tokens.accessToken, { maxResults: 100 });
+      console.log('[MeetingStore] Successfully fetched events count:', events?.length || 0);
       set({
         events: events || [],
         selectedMeeting: events[0] || null,
@@ -133,6 +135,7 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
       });
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to sync Google Calendar';
+      console.warn('[MeetingStore] Fetch error:', errorMessage);
       const is401 = errorMessage.includes('401') || errorMessage.includes('expired');
 
       // Silent automatic background renewal
@@ -141,7 +144,7 @@ export const useMeetingStore = create<MeetingState>((set, get) => ({
           const freshAccessToken = await refreshFn();
           if (freshAccessToken) {
             set({ tokens: { ...tokens, accessToken: freshAccessToken } });
-            const retryEvents = await fetchGoogleCalendarEvents(freshAccessToken);
+            const retryEvents = await fetchGoogleCalendarEvents(freshAccessToken, { maxResults: 100 });
             set({
               events: retryEvents || [],
               selectedMeeting: retryEvents[0] || null,

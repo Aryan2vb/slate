@@ -26,7 +26,7 @@ function normalizeAttendees(
 ): MeetingAttendee[] {
   return rawAttendees.map((a, index) => {
     const isOrganizer = a.organizer || a.email === organizerEmail;
-    const name = a.displayName || a.email.split('@')[0].replace('.', ' ');
+    const name = a.displayName || a.email;
     const status: MeetingResponseStatus =
       a.responseStatus === 'accepted' ||
       a.responseStatus === 'declined' ||
@@ -38,11 +38,10 @@ function normalizeAttendees(
     return {
       id: `att-${index}-${a.email}`,
       email: a.email,
-      name: capitalize(name),
+      name: a.displayName ? capitalize(a.displayName) : a.email,
       responseStatus: status,
       isSelf: !!a.self,
       isOrganizer,
-      avatarUrl: `https://images.unsplash.com/photo-${1500000000000 + (index % 5) * 100000000}?w=120&auto=format&fit=crop&q=80`,
     };
   });
 }
@@ -129,7 +128,7 @@ export function transformGoogleCalendarEvent(raw: GoogleCalendarEvent): MeetingE
   const { meetUrl, platform } = extractConferenceInfo(raw);
 
   const organizerEmail = raw.organizer?.email || '';
-  const organizerName = raw.organizer?.displayName || organizerEmail.split('@')[0] || 'Organizer';
+  const organizerName = raw.organizer?.displayName || organizerEmail || 'Organizer';
 
   return {
     id: raw.id,
@@ -162,8 +161,10 @@ export async function fetchGoogleCalendarEvents(
   accessToken: string,
   options: CalendarFetchOptions = {}
 ): Promise<MeetingEvent[]> {
-  const timeMin = options.timeMin || new Date(new Date().setHours(0, 0, 0, 0));
-  const timeMax = options.timeMax || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days ahead
+  const now = Date.now();
+  // Default timeMin to 10 minutes ago so live meetings are included, but past finished meetings are excluded
+  const timeMin = options.timeMin || new Date(now - 10 * 60 * 1000);
+  const timeMax = options.timeMax || new Date(now + 7 * 24 * 60 * 60 * 1000); // 7 days ahead
 
   const params = new URLSearchParams({
     calendarId: 'primary',
@@ -171,9 +172,8 @@ export async function fetchGoogleCalendarEvents(
     orderBy: options.orderBy || 'startTime',
     timeMin: timeMin.toISOString(),
     timeMax: timeMax.toISOString(),
-    maxResults: (options.maxResults || 25).toString(),
-    // Cache buster to prevent HTTP client / OkHttp from serving stale disk cache
-    _t: Date.now().toString(),
+    maxResults: (options.maxResults || 100).toString(),
+    _t: now.toString(), // Hard anti-cache buster ensures fresh live network response
   });
 
   const url = `${GOOGLE_CALENDAR_BASE}/calendars/primary/events?${params.toString()}`;
@@ -183,7 +183,7 @@ export async function fetchGoogleCalendarEvents(
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
       Pragma: 'no-cache',
       Expires: '0',
     },
@@ -201,17 +201,20 @@ export async function fetchGoogleCalendarEvents(
 
   const data: GoogleCalendarEventsListResponse = await res.json();
   const rawItems = data.items || [];
+  const fetchTime = Date.now();
 
   const events = rawItems
     .filter((item) => item.status !== 'cancelled')
     .map(transformGoogleCalendarEvent)
+    // Filter out meetings that have already ended
+    .filter((ev) => ev.endDate.getTime() > fetchTime)
     .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
-  // Mark the very first upcoming event as next up
-  const now = Date.now();
+  // Mark the very first upcoming/live event as next up
   let foundNext = false;
   for (const ev of events) {
-    if (!foundNext && (ev.isLiveNow || ev.startDate.getTime() > now)) {
+    ev.isLiveNow = fetchTime >= ev.startDate.getTime() && fetchTime < ev.endDate.getTime();
+    if (!foundNext && (ev.isLiveNow || ev.startDate.getTime() >= fetchTime)) {
       ev.isNextUp = true;
       foundNext = true;
     }

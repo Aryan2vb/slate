@@ -11,6 +11,17 @@
     "preview": {
       "distribution": "internal",
       "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease -PreactNativeArchitectures=arm64-v8a"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://slate-backend-8c9l.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "991610011878-iuupkbjigp34q0g8sv3hh9oaibqhap0f.apps.googleusercontent.com"
+      }
+    },
+    "preview-universal": {
+      "distribution": "internal",
+      "android": {
         "buildType": "apk"
       },
       "env": {
@@ -20,7 +31,7 @@
     },
     "production": {
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://slate-backend-8c9l.onrender.com",
