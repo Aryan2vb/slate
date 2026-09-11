@@ -7,10 +7,17 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  SlideInRight,
+  SlideOutRight,
+  FadeIn,
+  Easing,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MeetingEvent } from '../types/calendar';
@@ -24,17 +31,24 @@ import EventCard from '../features/agenda/components/EventCard';
 import MeetingBottomSheet from '../features/agenda/components/MeetingBottomSheet';
 import AttendeesModal from '../features/agenda/components/AttendeesModal';
 import ProfileModal from '../features/agenda/components/ProfileModal';
+import NoteCard from '../features/notes/components/NoteCard';
+import FoldersModal from '../features/notes/components/FoldersModal';
+import { Note } from '../types/notes';
+import { useNoteStore } from '../store/useNoteStore';
+import { useFolderStore } from '../store/useFolderStore';
 
 interface AgendaScreenProps {
   onOpenDossier?: (meeting: MeetingEvent) => void;
   onStartCopilot?: (meeting: MeetingEvent) => void;
   onOpenProfile?: () => void;
+  onOpenNote?: (note: Note) => void;
 }
 
 export default function AgendaScreen({
   onOpenDossier,
   onStartCopilot,
   onOpenProfile,
+  onOpenNote,
 }: AgendaScreenProps) {
   const insets = useSafeAreaInsets();
   const { user: authUser, signOut: authSignOut, refreshAccessToken } = useAuth();
@@ -72,6 +86,35 @@ export default function AgendaScreen({
     onStartCopilot,
   });
 
+  const notes = useNoteStore((s) => s.notes);
+  const deleteNote = useNoteStore((s) => s.deleteNote);
+
+  const [foldersModalOpen, setFoldersModalOpen] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const searchInputRef = React.useRef<TextInput>(null);
+
+  const selectedFolderId = useFolderStore((s) => s.selectedFolderId);
+  const setSelectedFolderId = useFolderStore((s) => s.setSelectedFolderId);
+  const folders = useFolderStore((s) => s.folders);
+  const selectedFolder = folders.find((f) => f.id === selectedFolderId);
+
+  const displayedNotes = React.useMemo(() => {
+    let list = notes;
+    if (selectedFolderId) {
+      list = list.filter((n) => n.folderId === selectedFolderId);
+    }
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (n) =>
+          (n.title && n.title.toLowerCase().includes(q)) ||
+          (n.body && n.body.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [notes, selectedFolderId, searchQuery]);
+
   useEffect(() => {
     void fetchMeetings(false, refreshAccessToken);
   }, [fetchMeetings, refreshAccessToken]);
@@ -79,6 +122,15 @@ export default function AgendaScreen({
   // Hardware/gesture Back navigation: steps back through modals rather than closing app
   useEffect(() => {
     const onBackPress = () => {
+      if (isSearchOpen) {
+        setIsSearchOpen(false);
+        setSearchQuery('');
+        return true;
+      }
+      if (foldersModalOpen) {
+        setFoldersModalOpen(false);
+        return true;
+      }
       if (attendeeModalMeeting) {
         setAttendeeModalMeeting(null);
         return true;
@@ -96,7 +148,7 @@ export default function AgendaScreen({
 
     const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => sub.remove();
-  }, [attendeeModalMeeting, selectedMeeting, profileOpen, setAttendeeModalMeeting, setSelectedMeeting, setProfileOpen]);
+  }, [isSearchOpen, foldersModalOpen, attendeeModalMeeting, selectedMeeting, profileOpen, setAttendeeModalMeeting, setSelectedMeeting, setProfileOpen]);
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.bg, paddingTop: insets.top }]}>
@@ -104,54 +156,115 @@ export default function AgendaScreen({
 
       {/* Top App Bar */}
       <View style={styles.topBar}>
-        {/* Left: Folder circular button */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => void Haptics.selectionAsync()}
-          style={[
-            styles.circleButton,
-            { backgroundColor: themeColors.card, borderColor: themeColors.cardBorder },
-          ]}
-        >
-          <Icon name="folder" size={18} color={themeColors.textSecondary} />
-        </TouchableOpacity>
-
-        {/* Right: Search + Profile Photo */}
-        <View style={styles.topRightActions}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => void Haptics.selectionAsync()}
-            style={[
-              styles.circleButton,
-              { backgroundColor: themeColors.card, borderColor: themeColors.cardBorder },
-            ]}
+        {isSearchOpen ? (
+          /* Expandable Search Input Bar expanding to the left side with left icon formed */
+          <Animated.View
+            entering={SlideInRight.duration(240).easing(Easing.bezier(0.22, 1, 0.36, 1))}
+            exiting={SlideOutRight.duration(180).easing(Easing.bezier(0.22, 1, 0.36, 1))}
+            style={styles.expandedTopSearchBar}
           >
-            <Icon name="search" size={18} color={themeColors.textSecondary} />
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => {
-              void Haptics.selectionAsync();
-              if (onOpenProfile) {
-                onOpenProfile();
-              } else {
-                setProfileOpen(true);
-              }
-            }}
-            style={[styles.avatarButton, { borderColor: themeColors.cardBorder }]}
-          >
-            {authUser?.picture ? (
-              <Image source={{ uri: authUser.picture }} style={styles.avatarImage} />
-            ) : (
-              <View style={[styles.avatarFallback, { backgroundColor: themeColors.pillBg }]}>
-                <Text style={[styles.avatarFallbackText, { color: themeColors.text }]}>
-                  {(authUser?.name || authUser?.email || 'U')[0].toUpperCase()}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
+            <View
+              style={[
+                styles.topSearchInputWrap,
+                {
+                  backgroundColor: themeColors.card,
+                  borderColor: themeColors.cardBorder,
+                },
+              ]}
+            >
+
+              
+              {/* The left icon formed */}
+              <Icon name="search" size={16} color={themeColors.textSecondary} />
+              <TextInput
+                ref={searchInputRef}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search notes by title or content..."
+                placeholderTextColor={themeColors.textMuted}
+                style={[styles.topSearchInput, { color: themeColors.text }]}
+                autoFocus
+                returnKeyType="search"
+              />
+            </View>
+
+          </Animated.View>
+        ) : (
+          <>
+            {/* Left: Folder circular button */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                void Haptics.selectionAsync();
+                setFoldersModalOpen(true);
+              }}
+              style={[
+                styles.circleButton,
+                {
+                  backgroundColor: selectedFolderId
+                    ? isDark
+                      ? 'rgba(255,255,255,0.12)'
+                      : '#EBE9E4'
+                    : themeColors.card,
+                  borderColor: selectedFolderId ? themeColors.text : themeColors.cardBorder,
+                },
+              ]}
+            >
+              <Animated.View entering={FadeIn.duration(200)}>
+                <Icon
+                  name="folder"
+                  size={18}
+                  color={selectedFolderId ? themeColors.text : themeColors.textSecondary}
+                />
+              </Animated.View>
+            </TouchableOpacity>
+
+            {/* Right: Search + Profile Photo */}
+            <View style={styles.topRightActions}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  setIsSearchOpen(true);
+                }}
+                style={[
+                  styles.circleButton,
+                  { backgroundColor: themeColors.card, borderColor: themeColors.cardBorder },
+                ]}
+              >
+                <Icon
+                  name="search"
+                  size={18}
+                  color={themeColors.textSecondary}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  if (onOpenProfile) {
+                    onOpenProfile();
+                  } else {
+                    setProfileOpen(true);
+                  }
+                }}
+                style={[styles.avatarButton, { borderColor: themeColors.cardBorder }]}
+              >
+                {authUser?.picture ? (
+                  <Image source={{ uri: authUser.picture }} style={styles.avatarImage} />
+                ) : (
+                  <View style={[styles.avatarFallback, { backgroundColor: themeColors.pillBg }]}>
+                    <Text style={[styles.avatarFallbackText, { color: themeColors.text }]}>
+                      {(authUser?.name || authUser?.email || 'U')[0].toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
 
       <ScrollView
@@ -170,11 +283,42 @@ export default function AgendaScreen({
           />
         }
       >
-        {/* Screen Title */}
-        <Text style={[styles.screenTitle, { color: themeColors.text }]}>My notes</Text>
+        {/* Screen Title & Active Folder Filter */}
+        <View style={styles.titleSection}>
+          <Text style={[styles.screenTitle, { color: themeColors.text }]}>My notes</Text>
+          <View style={styles.titleRightRow}>
+            {searchQuery.trim() ? (
+              <View style={[styles.searchQueryBadge]}>
+                <Text style={[styles.searchQueryBadgeText, { color: themeColors.textSecondary }]}>
+                  {displayedNotes.length} {displayedNotes.length === 1 ? 'note' : 'notes'} found
+                </Text>
+              </View>
+            ) : null}
+
+            {selectedFolder && (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  setSelectedFolderId(null);
+                }}
+                style={[
+                  styles.activeFolderFilterBar,
+                  { backgroundColor: themeColors.pillBg, borderColor: themeColors.cardBorder },
+                ]}
+              >
+                <Icon name="folder" size={13} color={themeColors.text} />
+                <Text style={[styles.activeFolderName, { color: themeColors.text }]} numberOfLines={1}>
+                  {selectedFolder.name}
+                </Text>
+                <Icon name="x" size={13} color={themeColors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
 
         {/* "Coming up" Section */}
-        {upcomingEvents.length > 0 && (
+        {upcomingEvents.length > 0 && !searchQuery.trim() && (
           <View style={styles.comingUpSection}>
             <View style={styles.comingUpHeaderRow}>
               <Text style={[styles.comingUpLabel, { color: themeColors.textMuted }]}>
@@ -212,32 +356,71 @@ export default function AgendaScreen({
           </View>
         )}
 
-        {/* Center Empty State: Angled Notebook Graphic + "No notes yet" */}
-        <View style={styles.emptyCenterContainer}>
-          <View style={styles.notebookGraphic}>
-            <View
-              style={[
-                styles.notebookSheetBack,
-                {
-                  borderColor: isDark ? '#383B44' : '#D0CECA',
-                  backgroundColor: isDark ? 'transparent' : '#F0EFEA',
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.notebookSheetFront,
-                {
-                  borderColor: isDark ? '#4A4D59' : '#BCBAAF',
-                  backgroundColor: themeColors.bg,
-                },
-              ]}
-            />
+        {/* Notes Feed: Real Saved Notes or Empty Graphic */}
+        {displayedNotes && displayedNotes.length > 0 ? (
+          <View style={styles.notesFeedSection}>
+            {displayedNotes.map((note) => (
+              <NoteCard
+                key={note.id}
+                note={note}
+                themeColors={themeColors}
+                isDark={isDark}
+                onPress={(item) => onOpenNote && onOpenNote(item)}
+                onDelete={(id) => deleteNote(id)}
+              />
+            ))}
           </View>
-          <Text style={[styles.noNotesText, { color: themeColors.textMuted }]}>
-            No notes yet
-          </Text>
-        </View>
+        ) : (
+          /* Center Empty State */
+          <View style={styles.emptyCenterContainer}>
+            <View style={styles.notebookGraphic}>
+              <View
+                style={[
+                  styles.notebookSheetBack,
+                  {
+                    borderColor: isDark ? '#383B44' : '#D0CECA',
+                    backgroundColor: isDark ? 'transparent' : '#F0EFEA',
+                  },
+                ]}
+              />
+              <View
+                style={[
+                  styles.notebookSheetFront,
+                  {
+                    borderColor: isDark ? '#4A4D59' : '#BCBAAF',
+                    backgroundColor: themeColors.bg,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.noNotesText, { color: themeColors.textMuted }]}>
+              {searchQuery.trim()
+                ? `No notes match "${searchQuery.trim()}"`
+                : selectedFolder
+                ? `No notes in "${selectedFolder.name}"`
+                : 'No notes yet'}
+            </Text>
+            {searchQuery.trim() ? (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={styles.clearFilterBtn}
+              >
+                <Text style={[styles.clearFilterText, { color: themeColors.textSecondary }]}>
+                  Clear search
+                </Text>
+              </TouchableOpacity>
+            ) : selectedFolder ? (
+              <TouchableOpacity
+                onPress={() => setSelectedFolderId(null)}
+                style={styles.clearFilterBtn}
+              >
+                <Text style={[styles.clearFilterText, { color: themeColors.textSecondary }]}>
+                  View all notes
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        )}
       </ScrollView>
 
       {/* Floating Action Button: "✎ New note" */}
@@ -310,6 +493,14 @@ export default function AgendaScreen({
         isDark={isDark}
         onClose={() => setAttendeeModalMeeting(null)}
       />
+
+      {/* Folders Management Modal */}
+      <FoldersModal
+        visible={foldersModalOpen}
+        themeColors={themeColors}
+        isDark={isDark}
+        onClose={() => setFoldersModalOpen(false)}
+      />
     </View>
   );
 }
@@ -366,15 +557,102 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
   },
+  expandedTopSearchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  topSearchInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+  },
+  topSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    padding: 0,
+  },
+  searchClearBtn: {
+    padding: 4,
+  },
+  topSearchCancelBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  topSearchCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  titleSection: {
+    marginTop: 14,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  titleRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchQueryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  searchQueryBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
   screenTitle: {
     fontFamily: fontFamilies.serif,
     fontSize: 34,
     fontWeight: '600',
-    marginTop: 14,
-    marginBottom: 24,
     letterSpacing: -0.4,
   },
+  activeFolderFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    maxWidth: 180,
+  },
+  activeFolderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  activeFolderName: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  clearFilterBtn: {
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  clearFilterText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
   comingUpSection: {
+    marginBottom: 24,
+  },
+  notesFeedSection: {
+    marginTop: 4,
     marginBottom: 24,
   },
   comingUpHeaderRow: {

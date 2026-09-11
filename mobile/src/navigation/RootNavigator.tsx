@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { BackHandler, StyleSheet } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  SlideInRight,
+  SlideOutLeft,
+  Easing,
+} from 'react-native-reanimated';
 
 import AgendaScreen from '../screens/AgendaScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -11,6 +16,7 @@ import CommandCenterScreen from '../screens/CommandCenterScreen';
 import { Meeting } from '../data/meetings';
 import { Objective } from '../data/intel';
 import { MeetingEvent } from '../types/calendar';
+import { Note } from '../types/notes';
 
 export function meetingEventToMeeting(ev: MeetingEvent): Meeting {
   return {
@@ -43,7 +49,7 @@ export type AppRoute =
   | { name: 'profile' }
   | { name: 'command' }
   | { name: 'dossier'; meeting: Meeting }
-  | { name: 'live'; meeting: Meeting; objectives: Objective[] };
+  | { name: 'live'; meeting: Meeting; objectives: Objective[]; existingNote?: Note };
 
 export default function RootNavigator() {
   const [route, setRoute] = useState<AppRoute>({ name: 'agenda' });
@@ -84,10 +90,16 @@ export default function RootNavigator() {
 
     case 'live':
       return (
-        <Animated.View key="live" entering={FadeIn.duration(220)} style={styles.fill}>
+        <Animated.View
+          key="live"
+          entering={SlideInRight.duration(240).easing(Easing.bezier(0.22, 1, 0.36, 1))}
+          exiting={SlideOutLeft.duration(180).easing(Easing.bezier(0.22, 1, 0.36, 1))}
+          style={styles.fill}
+        >
           <LiveCopilotScreen
             meeting={route.meeting}
             objectives={route.objectives}
+            existingNote={route.existingNote}
             onEnd={() => setRoute({ name: 'agenda' })}
           />
         </Animated.View>
@@ -115,6 +127,22 @@ export default function RootNavigator() {
                 name: 'live',
                 meeting: meetingEventToMeeting(meetingEvent),
                 objectives: [],
+              })
+            }
+            onOpenNote={(note) =>
+              setRoute({
+                name: 'live',
+                meeting: {
+                  id: note.meetingId || `note-${note.id}`,
+                  title: note.title,
+                  org: '',
+                  startTime: new Date(note.createdAt),
+                  endTime: new Date(note.updatedAt || note.createdAt),
+                  tags: note.tags || [],
+                  people: [],
+                },
+                objectives: [],
+                existingNote: note,
               })
             }
           />

@@ -26,6 +26,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useMeetingStore } from '../store/useMeetingStore';
 import Icon from '../components/Icon';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import { fontFamilies } from '../theme/tokens';
 
 interface ProfileScreenProps {
@@ -41,6 +42,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
   const [copyAsMarkdown, setCopyAsMarkdown] = useState(true);
   const [notificationTiming, setNotificationTiming] = useState('5 min before');
   const [themeModalVisible, setThemeModalVisible] = useState(false);
+  const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
 
   const displayName = authUser?.name || 'Aryan Soni';
   const displayEmail = authUser?.email || 'aryan.s23cs@hood.edu.in';
@@ -63,21 +65,7 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
 
   const handleDeleteAccount = () => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Alert.alert(
-      'Delete your account',
-      'This will permanently delete your account and remove all synced data. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await meetingSignOut();
-            await authSignOut();
-          },
-        },
-      ],
-    );
+    setDeleteAccountModalVisible(true);
   };
 
   const handleToggleTiming = () => {
@@ -431,6 +419,21 @@ export default function ProfileScreen({ onBack }: ProfileScreenProps) {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* Bespoke Delete Account Modal */}
+      <DeleteConfirmModal
+        visible={deleteAccountModalVisible}
+        title="Delete your account"
+        message="This will permanently delete your account and remove all synced data. This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={async () => {
+          setDeleteAccountModalVisible(false);
+          await meetingSignOut();
+          await authSignOut();
+        }}
+        onCancel={() => setDeleteAccountModalVisible(false)}
+      />
     </View>
   );
 }
