@@ -153,6 +153,7 @@ export const exchangeGoogleCode = async (req: Request, res: Response): Promise<v
 
     res.status(200).json({
       token,
+      idToken: id_token || null,
       accessToken: access_token,
       refreshToken: refresh_token || null,
       expiresIn: expiry_date,
@@ -315,7 +316,7 @@ export const handleGoogleBrowserCallback = async (req: Request, res: Response): 
       { expiresIn: '30d' }
     );
 
-    const deepLink = `${redirectScheme}://auth?token=${encodeURIComponent(token)}&accessToken=${encodeURIComponent(access_token)}&refreshToken=${encodeURIComponent(refresh_token || '')}&expiresIn=${encodeURIComponent(String(expiry_date || ''))}&user=${encodeURIComponent(JSON.stringify(user))}`;
+    const deepLink = `${redirectScheme}://auth?token=${encodeURIComponent(token)}&idToken=${encodeURIComponent(id_token || '')}&accessToken=${encodeURIComponent(access_token)}&refreshToken=${encodeURIComponent(refresh_token || '')}&expiresIn=${encodeURIComponent(String(expiry_date || ''))}&user=${encodeURIComponent(JSON.stringify(user))}`;
 
     // Render an HTML page that triggers deep link and provides a fallback button
     res.send(`
@@ -347,4 +348,3 @@ export const handleGoogleBrowserCallback = async (req: Request, res: Response): 
     res.redirect(`${redirectScheme}://auth?error=${encodeURIComponent(msg)}`);
   }
 };
-

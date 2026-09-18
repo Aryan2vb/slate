@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import Animated, {
   SlideInDown,
   SlideOutDown,
@@ -67,6 +68,7 @@ export default function LiveCopilotScreen({
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   const [wrapUpOpen, setWrapUpOpen] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   const bodyInputRef = useRef<TextInput>(null);
 
@@ -77,14 +79,25 @@ export default function LiveCopilotScreen({
     return () => clearInterval(id);
   }, [isRecording]);
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsRecording((prev) => !prev);
+    if (isRecording) {
+      await recorder.stop();
+      setIsRecording(false);
+      return;
+    }
+    const permission = await requestRecordingPermissionsAsync();
+    if (!permission.granted) { Alert.alert('Microphone access required', 'Allow microphone access to record meeting audio.'); return; }
+    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+    await recorder.prepareToRecordAsync();
+    recorder.record();
+    setIsRecording(true);
   };
 
-  const handleOpenWrapUp = () => {
+  const handleOpenWrapUp = async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     Keyboard.dismiss();
+    if (isRecording) await recorder.stop();
     setIsRecording(false);
     setWrapUpOpen(true);
   };

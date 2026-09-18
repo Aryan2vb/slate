@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { User, authenticateWithGoogle, refreshGoogleAccessToken } from '../services/api';
+import { User, refreshGoogleAccessToken } from '../services/api';
+import { supabase } from '../services/supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -115,13 +116,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (accessToken: string, idToken?: string, refreshToken?: string | null) => {
     setIsLoading(true);
     try {
-      const data = await authenticateWithGoogle(accessToken, idToken);
-      setToken(data.token);
-      setUser(data.user);
+      if (!idToken) throw new Error('Google did not return an ID token. Please use the updated Google sign-in flow.');
+      const { data, error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken });
+      if (error || !data.session || !data.user) throw new Error(error?.message || 'Supabase Google sign-in failed');
+      const authenticatedUser: User = { id: data.user.id, email: data.user.email || '', name: data.user.user_metadata?.full_name || data.user.email || 'Google user', picture: data.user.user_metadata?.avatar_url || '' };
+      setToken(data.session.access_token);
+      setUser(authenticatedUser);
       setGoogleAccessToken(accessToken);
 
-      await storage.setItem(TOKEN_KEY, data.token);
-      await storage.setItem(USER_KEY, JSON.stringify(data.user));
+      await storage.setItem(TOKEN_KEY, data.session.access_token);
+      await storage.setItem(USER_KEY, JSON.stringify(authenticatedUser));
       await storage.setItem(GOOGLE_ACCESS_TOKEN_KEY, accessToken);
 
       if (refreshToken) {
@@ -198,6 +202,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setGoogleAccessToken(null);
       setGoogleRefreshToken(null);
+      await supabase.auth.signOut();
 
       await storage.deleteItem(TOKEN_KEY);
       await storage.deleteItem(USER_KEY);

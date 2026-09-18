@@ -67,6 +67,7 @@ export default function LoginScreen() {
 
       // 1. Check for complete backend session (token, accessToken, user)
       const token = params.get('token');
+      const redirectIdToken = params.get('idToken') || undefined;
       const accessToken = params.get('accessToken');
       const refreshToken = params.get('refreshToken');
       const userStr = params.get('user');
@@ -81,7 +82,8 @@ export default function LoginScreen() {
           }
         }
         if (userObj) {
-          await setSession(token, userObj, accessToken, refreshToken);
+          if (!redirectIdToken) throw new Error('Google ID token was not returned. Reconnect Google Calendar to update the session.');
+          await handleSignIn(accessToken, redirectIdToken, refreshToken);
           return true;
         }
       }
@@ -92,7 +94,7 @@ export default function LoginScreen() {
         const proxyRedirectUri = 'https://auth.expo.io/@aryan2vb/granola';
         const authData = await exchangeGoogleAuthCode(code, proxyRedirectUri);
         if (authData.accessToken) {
-          await handleSignIn(authData.accessToken, undefined, authData.refreshToken);
+          await handleSignIn(authData.accessToken, authData.idToken, authData.refreshToken);
           return true;
         }
       }

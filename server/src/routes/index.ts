@@ -7,13 +7,8 @@ import {
   handleGoogleBrowserCallback,
 } from '../controllers/authController';
 import { getEvents } from '../controllers/calendarController';
-import {
-  getNotes,
-  getNote,
-  saveNote,
-  deleteNote,
-} from '../controllers/noteController';
-import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
+import { createSession, initUpload, completeSession, getSession, mapSpeaker } from '../controllers/meetingController';
 
 const router = Router();
 
@@ -27,11 +22,10 @@ router.get('/api/auth/google/callback', handleGoogleBrowserCallback);
 // Calendar routes
 router.get('/api/calendar/events', authMiddleware, getEvents);
 
-// Notes persistence routes
-router.get('/api/notes', optionalAuthMiddleware, getNotes);
-router.get('/api/notes/:id', optionalAuthMiddleware, getNote);
-router.post('/api/notes', optionalAuthMiddleware, saveNote);
-router.delete('/api/notes/:id', optionalAuthMiddleware, deleteNote);
+router.post('/meeting-sessions', authMiddleware, createSession);
+router.post('/uploads/init', authMiddleware, initUpload);
+router.post('/meeting-sessions/:id/complete', authMiddleware, completeSession);
+router.get('/meeting-sessions/:id', authMiddleware, getSession);
+router.post('/speaker-mappings', authMiddleware, mapSpeaker);
 
 export default router;
-

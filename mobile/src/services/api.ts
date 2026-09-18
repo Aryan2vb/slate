@@ -55,6 +55,7 @@ export const getAuthHeaders = (token: string) => {
 
 export interface GoogleAuthResponse {
   token: string;
+  idToken?: string | null;
   accessToken: string;
   refreshToken?: string | null;
   expiresIn?: number;
