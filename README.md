@@ -47,6 +47,15 @@ Slate is an AI-powered meeting companion for professionals. It syncs with your G
 
 ---
 
+## 📸 Screenshots
+
+| My Notes | Attendees | Live Copilot | Folders |
+|:---:|:---:|:---:|:---:|
+| ![My Notes](docs/screenshots/my-notes.jpg) | ![Attendees](docs/screenshots/attendees.jpg) | ![Live Copilot](docs/screenshots/copilot-editor.jpg) | ![Folders](docs/screenshots/folders.jpg) |
+| Calendar feed with upcoming events | Per-meeting attendee list & RSVP status | Voice capture + rich-text note editor | Folder management for notes |
+
+---
+
 ## 🏗️ Architecture
 
 ```
